@@ -67,6 +67,7 @@ body.dark-mode {
     margin-bottom: 10px;
     cursor: move;
     transition: all 0.2s ease;
+    color: var(--text-primary);
 }
 
 .task-item:hover {
@@ -86,6 +87,7 @@ body.dark-mode {
 .task-title {
     font-weight: 500;
     margin-bottom: 5px;
+    color: var(--text-primary);
 }
 
 .task-description {
@@ -264,6 +266,7 @@ body.dark-mode {
     transition: box-shadow 0.2s ease, transform 0.2s ease;
     overflow: hidden;
     z-index: 5;
+    min-height: 30px;
 }
 
 .calendar-task-block:hover {
@@ -274,6 +277,26 @@ body.dark-mode {
 
 .calendar-task-block.dragging {
     opacity: 0.5;
+}
+
+.calendar-task-block.resizing {
+    cursor: ns-resize;
+}
+
+.calendar-task-resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    cursor: ns-resize;
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.calendar-task-block:hover .calendar-task-resize-handle {
+    opacity: 1;
 }
 
 .calendar-task-header {

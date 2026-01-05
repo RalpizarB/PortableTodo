@@ -715,6 +715,8 @@ class PortableTodo {
                  draggable="true" 
                  data-task-id="${task.id}" 
                  data-day="${dayKey}"
+                 data-start-time="${startTime}"
+                 data-duration="${duration}"
                  ondragstart="app.handleCalendarTaskDragStart(event, '${task.id}', '${dayKey}')"
                  ondragend="app.handleCalendarTaskDragEnd(event)">
                 <div class="calendar-task-header">
@@ -724,6 +726,8 @@ class PortableTodo {
                 </div>
                 <div class="calendar-task-time">${this.formatTime(startTime)} - ${this.formatTime(startTime + duration/60)}</div>
                 ${totalSubtasks > 0 ? `<div class="calendar-task-progress">${completedSubtasks}/${totalSubtasks} done</div>` : ''}
+                <div class="calendar-task-resize-handle" 
+                     onmousedown="app.startResize(event, '${dayKey}', '${task.id}')"></div>
             </div>
         `;
     }
@@ -758,19 +762,12 @@ class PortableTodo {
             // Check if task is already in this day
             const exists = this.weekPlan[dayKey].find(t => t.taskId === this.draggedTask.id);
             if (!exists) {
-                const startTime = prompt('Enter start time (8-18, e.g., 9 for 9 AM or 14.5 for 2:30 PM):', '9');
-                const duration = prompt('Enter duration in minutes:', '60');
-                
-                if (startTime && duration) {
-                    const start = parseFloat(startTime);
-                    if (start >= 8 && start <= 18) {
-                        this.weekPlan[dayKey].push({
-                            taskId: this.draggedTask.id,
-                            startTime: start,
-                            duration: parseInt(duration) || 60
-                        });
-                    }
-                }
+                // Default to 9 AM, 60 minutes - user can resize later
+                this.weekPlan[dayKey].push({
+                    taskId: this.draggedTask.id,
+                    startTime: 9,
+                    duration: 60
+                });
             }
 
             this.saveData();
@@ -816,6 +813,62 @@ class PortableTodo {
             this.saveData();
             this.renderWeekCalendar();
         }
+    }
+
+    // ========================================
+    // Resize Functionality
+    // ========================================
+    
+    startResize(event, dayKey, taskId) {
+        event.stopPropagation();
+        event.preventDefault();
+        
+        const taskBlock = event.target.closest('.calendar-task-block');
+        if (!taskBlock) return;
+        
+        taskBlock.classList.add('resizing');
+        taskBlock.draggable = false;
+        
+        const startY = event.clientY;
+        const startHeight = taskBlock.offsetHeight;
+        const taskData = this.weekPlan[dayKey].find(t => t.taskId === taskId);
+        
+        if (!taskData) return;
+        
+        const onMouseMove = (e) => {
+            const deltaY = e.clientY - startY;
+            const newHeight = Math.max(30, startHeight + deltaY); // Minimum 30px
+            const newDuration = Math.round((newHeight / 60) * 60); // Convert pixels to minutes
+            
+            taskBlock.style.height = newHeight + 'px';
+            
+            // Update the time display
+            const startTime = parseFloat(taskBlock.dataset.startTime);
+            const timeDisplay = taskBlock.querySelector('.calendar-task-time');
+            if (timeDisplay) {
+                timeDisplay.textContent = `${this.formatTime(startTime)} - ${this.formatTime(startTime + newDuration/60)}`;
+            }
+        };
+        
+        const onMouseUp = (e) => {
+            taskBlock.classList.remove('resizing');
+            taskBlock.draggable = true;
+            
+            const finalHeight = taskBlock.offsetHeight;
+            const newDuration = Math.round((finalHeight / 60) * 60); // Convert pixels to minutes
+            
+            // Update the task data
+            taskData.duration = Math.max(15, newDuration); // Minimum 15 minutes
+            
+            this.saveData();
+            this.renderWeekCalendar();
+            
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     }
 
     // ========================================
