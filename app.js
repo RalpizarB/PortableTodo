@@ -735,8 +735,8 @@ class PortableTodo {
         const task = this.tasks.find(t => t.id === calendarTask.taskId);
         if (!task) return '';
 
-        const startTime = calendarTask.startTime || 9; // Default 9 AM
-        const duration = calendarTask.duration || 60;
+        const startTime = calendarTask.startTime !== undefined ? calendarTask.startTime : 9; // Default 9 AM
+        const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
         
         // Calculate position (0:00 = 0, each hour = 60px)
         const top = startTime * 60;
