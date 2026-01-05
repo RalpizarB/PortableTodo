@@ -85,9 +85,24 @@
             <!-- Right Section - Week Calendar -->
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Week Planner</h5>
-                        <small class="text-muted">Drag tasks to plan your week</small>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Week Planner</h5>
+                            <small class="text-muted">Drag tasks to plan your week</small>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="calendarDays" id="days1" value="1">
+                            <label class="btn btn-outline-primary" for="days1">1</label>
+                            
+                            <input type="radio" class="btn-check" name="calendarDays" id="days3" value="3">
+                            <label class="btn btn-outline-primary" for="days3">3</label>
+                            
+                            <input type="radio" class="btn-check" name="calendarDays" id="days5" value="5">
+                            <label class="btn btn-outline-primary" for="days5">5</label>
+                            
+                            <input type="radio" class="btn-check" name="calendarDays" id="days7" value="7" checked>
+                            <label class="btn btn-outline-primary" for="days7">7</label>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div id="weekCalendar">

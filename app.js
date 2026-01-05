@@ -9,6 +9,7 @@ class PortableTodo {
         this.draggedTask = null;
         this.draggedCalendarTask = null;
         this.currentTaskId = null;
+        this.calendarDays = 7; // 1, 3, 5, or 7 days
         
         this.init();
     }
@@ -84,6 +85,14 @@ class PortableTodo {
 
         // Set initial sort value
         document.getElementById('sortSelect').value = this.currentSortMode;
+
+        // Calendar day view buttons
+        document.querySelectorAll('input[name="calendarDays"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.calendarDays = parseInt(e.target.value);
+                this.renderWeekCalendar();
+            });
+        });
 
         // Modal close buttons
         document.querySelectorAll('.modal .btn-close, .modal [data-bs-dismiss="modal"]').forEach(btn => {
@@ -604,10 +613,11 @@ class PortableTodo {
         const container = document.getElementById('weekCalendar');
         const days = this.getWeekDays();
         const hours = this.getWorkingHours();
+        const numDays = days.length;
 
         // Create header with days
         const headerHTML = `
-            <div class="calendar-grid-header">
+            <div class="calendar-grid-header" style="grid-template-columns: 80px repeat(${numDays}, 1fr);">
                 <div class="calendar-time-column">Time</div>
                 ${days.map(day => `
                     <div class="calendar-day-column ${this.isToday(day.key) ? 'today' : ''}">
@@ -622,7 +632,7 @@ class PortableTodo {
         const gridHTML = `
             <div class="calendar-grid-body">
                 ${hours.map(hour => `
-                    <div class="calendar-grid-row">
+                    <div class="calendar-grid-row" style="grid-template-columns: 80px repeat(${numDays}, 1fr);">
                         <div class="calendar-time-label">${hour}</div>
                         ${days.map(day => {
                             const dayTasks = this.weekPlan[day.key] || [];
@@ -647,7 +657,7 @@ class PortableTodo {
                 ${days.map((day, dayIndex) => {
                     const dayTasks = this.weekPlan[day.key] || [];
                     return dayTasks.map(task => 
-                        this.createCalendarTaskElement(task, day.key, dayIndex)
+                        this.createCalendarTaskElement(task, day.key, dayIndex, numDays)
                     ).join('');
                 }).join('')}
             </div>
@@ -660,18 +670,32 @@ class PortableTodo {
         const days = [];
         const today = new Date();
         const currentDay = today.getDay();
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
+        
+        let startDate;
+        if (this.calendarDays === 1) {
+            // Show only today
+            startDate = new Date(today);
+        } else if (this.calendarDays === 5) {
+            // Show Monday-Friday
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
+            startDate = monday;
+        } else {
+            // Show from Monday for 3 or 7 days
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
+            startDate = monday;
+        }
 
-        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + i);
+        for (let i = 0; i < this.calendarDays; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
             
             days.push({
                 key: date.toISOString().split('T')[0],
-                name: dayNames[i],
+                name: dayNames[date.getDay()],
                 date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             });
         }
@@ -694,7 +718,7 @@ class PortableTodo {
         return dateKey === today;
     }
 
-    createCalendarTaskElement(calendarTask, dayKey, dayIndex) {
+    createCalendarTaskElement(calendarTask, dayKey, dayIndex, numDays) {
         const task = this.tasks.find(t => t.id === calendarTask.taskId);
         if (!task) return '';
 
@@ -704,14 +728,15 @@ class PortableTodo {
         // Calculate position (8 AM = 0, each hour = 60px)
         const top = (startTime - 8) * 60;
         const height = (duration / 60) * 60; // Convert minutes to pixels
-        const left = dayIndex * 14.28; // 100% / 7 days
+        const columnWidth = 100 / numDays; // Dynamic column width based on number of days
+        const left = dayIndex * columnWidth;
 
         const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
         const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
 
         return `
             <div class="calendar-task-block" 
-                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(14.28% - 4px);"
+                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(${columnWidth}% - 4px);"
                  draggable="true" 
                  data-task-id="${task.id}" 
                  data-day="${dayKey}"
@@ -753,6 +778,15 @@ class PortableTodo {
         event.preventDefault();
         event.currentTarget.classList.remove('drag-over');
 
+        // Calculate start time based on drop position
+        const calendarBody = document.querySelector('.calendar-grid-body');
+        if (!calendarBody) return;
+        
+        const rect = calendarBody.getBoundingClientRect();
+        const relativeY = event.clientY - rect.top;
+        const hourOffset = Math.floor(relativeY / 60); // 60px per hour
+        const calculatedStartTime = Math.max(8, Math.min(18, 8 + hourOffset)); // Clamp between 8 AM and 6 PM
+
         if (this.draggedTask) {
             // Adding task from task list
             if (!this.weekPlan[dayKey]) {
@@ -762,10 +796,10 @@ class PortableTodo {
             // Check if task is already in this day
             const exists = this.weekPlan[dayKey].find(t => t.taskId === this.draggedTask.id);
             if (!exists) {
-                // Default to 9 AM, 60 minutes - user can resize later
+                // Use calculated start time based on drop position
                 this.weekPlan[dayKey].push({
                     taskId: this.draggedTask.id,
-                    startTime: 9,
+                    startTime: calculatedStartTime,
                     duration: 60
                 });
             }
@@ -773,27 +807,32 @@ class PortableTodo {
             this.saveData();
             this.renderWeekCalendar();
         } else if (this.draggedCalendarTask) {
-            // Moving task between days
+            // Moving task between or within days
             const { taskId, fromDay } = this.draggedCalendarTask;
             
-            if (fromDay !== dayKey) {
-                // Remove from old day
-                if (this.weekPlan[fromDay]) {
-                    const taskData = this.weekPlan[fromDay].find(t => t.taskId === taskId);
-                    this.weekPlan[fromDay] = this.weekPlan[fromDay].filter(t => t.taskId !== taskId);
-                    
-                    // Add to new day
-                    if (!this.weekPlan[dayKey]) {
-                        this.weekPlan[dayKey] = [];
-                    }
-                    if (taskData) {
+            if (this.weekPlan[fromDay]) {
+                const taskData = this.weekPlan[fromDay].find(t => t.taskId === taskId);
+                
+                if (taskData) {
+                    if (fromDay === dayKey) {
+                        // Moving within same day - update start time
+                        taskData.startTime = calculatedStartTime;
+                    } else {
+                        // Moving to different day
+                        this.weekPlan[fromDay] = this.weekPlan[fromDay].filter(t => t.taskId !== taskId);
+                        
+                        if (!this.weekPlan[dayKey]) {
+                            this.weekPlan[dayKey] = [];
+                        }
+                        // Update start time when moving to new day
+                        taskData.startTime = calculatedStartTime;
                         this.weekPlan[dayKey].push(taskData);
                     }
                 }
-                
-                this.saveData();
-                this.renderWeekCalendar();
             }
+            
+            this.saveData();
+            this.renderWeekCalendar();
         }
     }
 
