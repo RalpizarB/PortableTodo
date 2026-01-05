@@ -739,7 +739,7 @@ class PortableTodo {
         const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
         
         // Calculate position (0:00 = 0, each hour = 60px)
-        const top = (startTime * 60) + 60+60+60+60;
+        const top = (startTime * 60) + 60 ;
         const height = (duration / 60) * 60; // Convert minutes to pixels
         const columnWidth = 100 / numDays; // Dynamic column width based on number of days
         const left = dayIndex * columnWidth;
