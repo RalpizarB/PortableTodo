@@ -718,8 +718,8 @@ class PortableTodo {
 
     getWorkingHours() {
         const hours = [];
-        for (let i = 8; i <= 18; i++) {
-            const hour12 = i > 12 ? i - 12 : i;
+        for (let i = 0; i <= 23; i++) {
+            const hour12 = i === 0 ? 12 : (i > 12 ? i - 12 : i);
             const ampm = i >= 12 ? 'PM' : 'AM';
             hours.push(`${hour12}:00 ${ampm}`);
         }
@@ -738,8 +738,8 @@ class PortableTodo {
         const startTime = calendarTask.startTime || 9; // Default 9 AM
         const duration = calendarTask.duration || 60;
         
-        // Calculate position (8 AM = 0, each hour = 60px)
-        const top = (startTime - 8) * 60;
+        // Calculate position (0:00 = 0, each hour = 60px)
+        const top = startTime * 60;
         const height = (duration / 60) * 60; // Convert minutes to pixels
         const columnWidth = 100 / numDays; // Dynamic column width based on number of days
         const left = dayIndex * columnWidth;
@@ -798,7 +798,7 @@ class PortableTodo {
         const rect = calendarBody.getBoundingClientRect();
         const relativeY = event.clientY - rect.top + calendarBody.scrollTop; // Account for scroll position
         const hourOffset = Math.floor(relativeY / 60); // 60px per hour
-        const calculatedStartTime = Math.max(8, Math.min(18, 8 + hourOffset)); // Clamp between 8 AM and 6 PM
+        const calculatedStartTime = Math.max(0, Math.min(23, hourOffset)); // Clamp between 0 (midnight) and 23 (11 PM)
 
         if (this.draggedTask) {
             // Adding task from task list
