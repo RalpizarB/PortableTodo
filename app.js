@@ -29,6 +29,7 @@ class PortableTodo {
         this.updateCurrentTaskDisplay();
         this.loadDarkMode();
         this.renderStickyNotes();
+        this.initResizablePanels();
     }
 
     loadData() {
@@ -1108,6 +1109,65 @@ class PortableTodo {
             element.remove();
         }
         this.saveData();
+    }
+
+    // ========================================
+    // Resizable Panels
+    // ========================================
+
+    initResizablePanels() {
+        const handles = document.querySelectorAll('.resize-handle');
+        
+        handles.forEach(handle => {
+            let isResizing = false;
+            let startX, startLeftWidth, startRightWidth;
+            let leftPanel, rightPanel;
+
+            handle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                
+                const panelId = handle.dataset.resize;
+                leftPanel = document.getElementById(panelId);
+                rightPanel = handle.nextElementSibling;
+
+                if (leftPanel && rightPanel) {
+                    startLeftWidth = leftPanel.offsetWidth;
+                    startRightWidth = rightPanel.offsetWidth;
+                }
+
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing || !leftPanel || !rightPanel) return;
+
+                const dx = e.clientX - startX;
+                const containerWidth = leftPanel.parentElement.offsetWidth;
+                
+                const newLeftWidth = startLeftWidth + dx;
+                const newRightWidth = startRightWidth - dx;
+
+                // Enforce minimum widths
+                if (newLeftWidth >= 200 && newRightWidth >= 200) {
+                    const leftPercent = (newLeftWidth / containerWidth) * 100;
+                    const rightPercent = (newRightWidth / containerWidth) * 100;
+
+                    leftPanel.style.flex = `0 0 ${leftPercent}%`;
+                    rightPanel.style.flex = `0 0 ${rightPercent}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    leftPanel = null;
+                    rightPanel = null;
+                }
+            });
+        });
     }
 
     // ========================================

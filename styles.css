@@ -729,3 +729,48 @@ body.dark-mode .sticky-note-content textarea::placeholder {
     cursor: nwse-resize;
     background: transparent;
 }
+
+/* Resizable Panels */
+.resizable-container {
+    display: flex;
+    gap: 0;
+    height: calc(100vh - 80px);
+    padding: 15px;
+    overflow: hidden;
+}
+
+.resizable-panel {
+    min-width: 200px;
+    overflow: auto;
+}
+
+.panel-content {
+    height: 100%;
+    overflow: auto;
+}
+
+.resize-handle {
+    width: 8px;
+    cursor: col-resize;
+    background: var(--border-color);
+    position: relative;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+    background: #0d6efd;
+}
+
+.resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -4px;
+    right: -4px;
+}
+
+.resize-handle:active {
+    background: #0d6efd;
+}

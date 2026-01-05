@@ -27,10 +27,10 @@
         </div>
     </nav>
 
-    <div class="container-fluid mt-3">
-        <div class="row">
-            <!-- Left Sidebar - Task Lists -->
-            <div class="col-md-3">
+    <div class="resizable-container">
+        <!-- Left Sidebar - Task Lists -->
+        <div class="resizable-panel" id="leftPanel" style="flex: 0 0 25%;">
+            <div class="panel-content">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Task Lists</h5>
@@ -55,9 +55,13 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Middle Section - Tasks -->
-            <div class="col-md-3">
+        <div class="resize-handle" data-resize="leftPanel"></div>
+
+        <!-- Middle Section - Tasks -->
+        <div class="resizable-panel" id="middlePanel" style="flex: 0 0 25%;">
+            <div class="panel-content">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0" id="currentListName">All Tasks</h5>
@@ -81,9 +85,13 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Right Section - Week Calendar -->
-            <div class="col-md-6">
+        <div class="resize-handle" data-resize="middlePanel"></div>
+
+        <!-- Right Section - Week Calendar -->
+        <div class="resizable-panel" id="rightPanel" style="flex: 1 1 auto;">
+            <div class="panel-content">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div>
