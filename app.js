@@ -335,6 +335,7 @@ class PortableTodo {
         if (this.currentSortMode === 'manual') {
             taskDiv.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                const container = document.getElementById('taskContainer');
                 const afterElement = this.getDragAfterElement(container, e.clientY);
                 if (afterElement == null) {
                     container.appendChild(taskDiv);
