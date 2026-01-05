@@ -84,6 +84,25 @@ class PortableTodo {
 
         // Set initial sort value
         document.getElementById('sortSelect').value = this.currentSortMode;
+
+        // Modal close buttons
+        document.querySelectorAll('.modal .btn-close, .modal [data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const modal = e.target.closest('.modal');
+                if (modal) {
+                    this.closeModal(modal.id);
+                }
+            });
+        });
+
+        // Close modal on backdrop click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal(modal.id);
+                }
+            });
+        });
     }
 
     // ========================================
@@ -147,7 +166,7 @@ class PortableTodo {
     }
 
     openListModal(list = null) {
-        const modal = new bootstrap.Modal(document.getElementById('listModal'));
+        const modal = document.getElementById('listModal');
         const form = document.getElementById('listForm');
         
         if (list) {
@@ -158,7 +177,8 @@ class PortableTodo {
             document.getElementById('listId').value = '';
         }
         
-        modal.show();
+        modal.style.display = 'block';
+        modal.classList.add('show');
     }
 
     saveList() {
@@ -181,8 +201,7 @@ class PortableTodo {
         this.saveData();
         this.renderTaskLists();
         
-        const modal = bootstrap.Modal.getInstance(document.getElementById('listModal'));
-        modal.hide();
+        this.closeModal('listModal');
     }
 
     deleteList(listId) {
@@ -379,7 +398,7 @@ class PortableTodo {
     }
 
     openTaskModal(task = null) {
-        const modal = new bootstrap.Modal(document.getElementById('taskModal'));
+        const modal = document.getElementById('taskModal');
         const form = document.getElementById('taskForm');
         
         if (task) {
@@ -393,7 +412,8 @@ class PortableTodo {
             document.getElementById('taskId').value = '';
         }
         
-        modal.show();
+        modal.style.display = 'block';
+        modal.classList.add('show');
     }
 
     saveTask() {
@@ -427,8 +447,7 @@ class PortableTodo {
         this.renderTasks();
         this.renderTaskLists();
         
-        const modal = bootstrap.Modal.getInstance(document.getElementById('taskModal'));
-        modal.hide();
+        this.closeModal('taskModal');
     }
 
     editTask(taskId) {
@@ -731,6 +750,12 @@ class PortableTodo {
     // Utility Functions
     // ========================================
     
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
+
     escapeHtml(text) {
         const map = {
             '&': '&amp;',
