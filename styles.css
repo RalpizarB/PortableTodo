@@ -1,0 +1,339 @@
+/* Light Mode (Default) */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+    --task-bg: #ffffff;
+    --task-hover: #f8f9fa;
+    --completed-text: #6c757d;
+    --calendar-day-bg: #f8f9fa;
+    --calendar-slot-bg: #ffffff;
+    --calendar-slot-hover: #e9ecef;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    --bg-primary: #212529;
+    --bg-secondary: #343a40;
+    --bg-tertiary: #495057;
+    --text-primary: #f8f9fa;
+    --text-secondary: #adb5bd;
+    --border-color: #495057;
+    --task-bg: #343a40;
+    --task-hover: #495057;
+    --completed-text: #6c757d;
+    --calendar-day-bg: #343a40;
+    --calendar-slot-bg: #2c3136;
+    --calendar-slot-hover: #495057;
+}
+
+body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode {
+    background-color: var(--bg-secondary);
+}
+
+/* Cards */
+.card {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.card-header {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.card-body {
+    background-color: var(--bg-primary);
+}
+
+/* Task Items */
+.task-item {
+    background-color: var(--task-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.task-item:hover {
+    background-color: var(--task-hover);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-item.dragging {
+    opacity: 0.5;
+}
+
+.task-item.completed .task-title {
+    text-decoration: line-through;
+    color: var(--completed-text);
+}
+
+.task-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.task-description {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.task-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.task-actions button {
+    padding: 2px 8px;
+    font-size: 0.85em;
+}
+
+/* Subtasks */
+.subtask-list {
+    margin-top: 10px;
+    margin-left: 20px;
+}
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+    gap: 8px;
+}
+
+.subtask-item.completed {
+    text-decoration: line-through;
+    color: var(--completed-text);
+}
+
+.subtask-input {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+.subtask-input:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+/* Task Lists */
+.list-group-item {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: var(--task-hover);
+}
+
+.list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Week Calendar */
+#weekCalendar {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.calendar-day {
+    background-color: var(--calendar-day-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.calendar-day-header {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.calendar-day-date {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+
+.calendar-time-slots {
+    min-height: 50px;
+}
+
+.calendar-task {
+    background-color: var(--calendar-slot-bg);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid #0d6efd;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    cursor: move;
+    transition: background-color 0.2s ease;
+}
+
+.calendar-task:hover {
+    background-color: var(--calendar-slot-hover);
+}
+
+.calendar-task-time {
+    font-size: 0.75em;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Current Task Display */
+#currentTaskDisplay {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.current-task-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.current-task-progress {
+    margin-top: 10px;
+}
+
+/* Form Controls in Dark Mode */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: var(--bg-secondary);
+    border-color: #0d6efd;
+    color: var(--text-primary);
+}
+
+/* Modal in Dark Mode */
+body.dark-mode .modal-content {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .btn-close {
+    filter: invert(1);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .col-md-3, .col-md-6 {
+        margin-bottom: 20px;
+    }
+}
+
+/* Drag Handle */
+.drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.task-item {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3em;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
