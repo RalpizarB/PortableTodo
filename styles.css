@@ -601,3 +601,131 @@ body.dark-mode .btn-close {
 .btn-close::before {
     content: "×";
 }
+
+/* Sticky Notes */
+.sticky-notes-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    font-size: 24px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sticky-notes-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+.sticky-note {
+    position: fixed;
+    width: 300px;
+    min-height: 200px;
+    background: linear-gradient(135deg, #fef6a8 0%, #fffae6 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    padding: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    resize: both;
+    overflow: hidden;
+}
+
+body.dark-mode .sticky-note {
+    background: linear-gradient(135deg, #4a4a1a 0%, #3a3a15 100%);
+    color: #f8f9fa;
+}
+
+.sticky-note-header {
+    background: rgba(0,0,0,0.1);
+    padding: 8px 12px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    user-select: none;
+}
+
+.sticky-note-header h6 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sticky-note-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.sticky-note-controls button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.sticky-note-controls button:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+.sticky-note-content {
+    flex: 1;
+    padding: 12px;
+    overflow: auto;
+}
+
+.sticky-note-content textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 150px;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    color: inherit;
+    outline: none;
+}
+
+body.dark-mode .sticky-note-content textarea {
+    color: #f8f9fa;
+}
+
+.sticky-note-content textarea::placeholder {
+    color: rgba(0,0,0,0.4);
+}
+
+body.dark-mode .sticky-note-content textarea::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.sticky-note.minimized {
+    height: 40px !important;
+    min-height: 40px !important;
+    resize: none;
+}
+
+.sticky-note.minimized .sticky-note-content {
+    display: none;
+}
+
+.sticky-note-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    background: transparent;
+}

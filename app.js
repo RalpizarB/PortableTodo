@@ -10,6 +10,8 @@ class PortableTodo {
         this.draggedCalendarTask = null;
         this.currentTaskId = null;
         this.calendarDays = 7; // 1, 3, 5, or 7 days
+        this.stickyNotes = [];
+        this.nextNoteId = 1;
         
         this.init();
     }
@@ -26,6 +28,7 @@ class PortableTodo {
         this.renderWeekCalendar();
         this.updateCurrentTaskDisplay();
         this.loadDarkMode();
+        this.renderStickyNotes();
     }
 
     loadData() {
@@ -36,6 +39,8 @@ class PortableTodo {
         this.weekPlan = JSON.parse(localStorage.getItem('weekPlan')) || {};
         this.currentTaskId = localStorage.getItem('currentTaskId') || null;
         this.currentSortMode = localStorage.getItem('sortMode') || 'manual';
+        this.stickyNotes = JSON.parse(localStorage.getItem('stickyNotes')) || [];
+        this.nextNoteId = parseInt(localStorage.getItem('nextNoteId')) || 1;
     }
 
     saveData() {
@@ -44,6 +49,8 @@ class PortableTodo {
         localStorage.setItem('weekPlan', JSON.stringify(this.weekPlan));
         localStorage.setItem('currentTaskId', this.currentTaskId);
         localStorage.setItem('sortMode', this.currentSortMode);
+        localStorage.setItem('stickyNotes', JSON.stringify(this.stickyNotes));
+        localStorage.setItem('nextNoteId', this.nextNoteId);
     }
 
     // ========================================
@@ -92,6 +99,11 @@ class PortableTodo {
                 this.calendarDays = parseInt(e.target.value);
                 this.renderWeekCalendar();
             });
+        });
+
+        // Add sticky note button
+        document.getElementById('addStickyNoteBtn').addEventListener('click', () => {
+            this.createStickyNote();
         });
 
         // Modal close buttons
@@ -908,6 +920,194 @@ class PortableTodo {
         
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+    }
+
+    // ========================================
+    // Sticky Notes
+    // ========================================
+
+    createStickyNote(noteData = null) {
+        const note = noteData || {
+            id: this.nextNoteId++,
+            content: '',
+            x: window.innerWidth / 2 - 150,
+            y: window.innerHeight / 2 - 100,
+            width: 300,
+            height: 200,
+            minimized: false,
+            created: new Date().toISOString()
+        };
+
+        if (!noteData) {
+            this.stickyNotes.push(note);
+            this.saveData();
+        }
+
+        this.renderStickyNote(note);
+    }
+
+    renderStickyNotes() {
+        this.stickyNotes.forEach(note => {
+            this.renderStickyNote(note);
+        });
+    }
+
+    renderStickyNote(note) {
+        const container = document.getElementById('stickyNotesContainer');
+        
+        // Remove existing note element if it exists
+        const existing = document.getElementById(`sticky-note-${note.id}`);
+        if (existing) {
+            existing.remove();
+        }
+
+        const noteEl = document.createElement('div');
+        noteEl.id = `sticky-note-${note.id}`;
+        noteEl.className = `sticky-note ${note.minimized ? 'minimized' : ''}`;
+        noteEl.style.left = note.x + 'px';
+        noteEl.style.top = note.y + 'px';
+        noteEl.style.width = note.width + 'px';
+        noteEl.style.height = note.height + 'px';
+
+        noteEl.innerHTML = `
+            <div class="sticky-note-header">
+                <h6><i class="bi bi-sticky"></i> Note</h6>
+                <div class="sticky-note-controls">
+                    <button onclick="app.toggleMinimizeNote(${note.id})" title="${note.minimized ? 'Expand' : 'Minimize'}">
+                        <i class="bi bi-${note.minimized ? 'arrows-angle-expand' : 'dash'}"></i>
+                    </button>
+                    <button onclick="app.deleteStickyNote(${note.id})" title="Delete">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="sticky-note-content">
+                <textarea placeholder="Type your note here...">${this.escapeHtml(note.content || '')}</textarea>
+            </div>
+        `;
+
+        container.appendChild(noteEl);
+
+        // Make draggable
+        this.makeDraggable(noteEl, note);
+
+        // Make resizable (if not minimized)
+        if (!note.minimized) {
+            this.makeResizable(noteEl, note);
+        }
+
+        // Auto-save content on input
+        const textarea = noteEl.querySelector('textarea');
+        textarea.addEventListener('input', (e) => {
+            note.content = e.target.value;
+            this.saveData();
+        });
+    }
+
+    makeDraggable(element, note) {
+        const header = element.querySelector('.sticky-note-header');
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = note.x;
+            initialY = note.y;
+            element.style.zIndex = 1000;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            note.x = initialX + dx;
+            note.y = initialY + dy;
+            
+            element.style.left = note.x + 'px';
+            element.style.top = note.y + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                element.style.zIndex = 999;
+                this.saveData();
+            }
+        });
+    }
+
+    makeResizable(element, note) {
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (!isResizing) {
+                note.width = element.offsetWidth;
+                note.height = element.offsetHeight;
+                this.saveData();
+            }
+        });
+
+        resizeObserver.observe(element);
+
+        element.addEventListener('mousedown', (e) => {
+            const rect = element.getBoundingClientRect();
+            const isInResizeZone = 
+                e.clientX > rect.right - 20 &&
+                e.clientY > rect.bottom - 20;
+
+            if (isInResizeZone) {
+                isResizing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = element.offsetWidth;
+                startHeight = element.offsetHeight;
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const width = startWidth + (e.clientX - startX);
+            const height = startHeight + (e.clientY - startY);
+
+            element.style.width = Math.max(200, width) + 'px';
+            element.style.height = Math.max(150, height) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                note.width = element.offsetWidth;
+                note.height = element.offsetHeight;
+                this.saveData();
+            }
+        });
+    }
+
+    toggleMinimizeNote(noteId) {
+        const note = this.stickyNotes.find(n => n.id === noteId);
+        if (note) {
+            note.minimized = !note.minimized;
+            this.saveData();
+            this.renderStickyNote(note);
+        }
+    }
+
+    deleteStickyNote(noteId) {
+        this.stickyNotes = this.stickyNotes.filter(n => n.id !== noteId);
+        const element = document.getElementById(`sticky-note-${noteId}`);
+        if (element) {
+            element.remove();
+        }
+        this.saveData();
     }
 
     // ========================================
