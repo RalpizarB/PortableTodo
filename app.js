@@ -796,7 +796,7 @@ class PortableTodo {
         if (!calendarBody) return;
         
         const rect = calendarBody.getBoundingClientRect();
-        const relativeY = event.clientY - rect.top;
+        const relativeY = event.clientY - rect.top + calendarBody.scrollTop; // Account for scroll position
         const hourOffset = Math.floor(relativeY / 60); // 60px per hour
         const calculatedStartTime = Math.max(8, Math.min(18, 8 + hourOffset)); // Clamp between 8 AM and 6 PM
 
@@ -806,16 +806,13 @@ class PortableTodo {
                 this.weekPlan[dayKey] = [];
             }
 
-            // Check if task is already in this day
-            const exists = this.weekPlan[dayKey].find(t => t.taskId === this.draggedTask.id);
-            if (!exists) {
-                // Use calculated start time based on drop position
-                this.weekPlan[dayKey].push({
-                    taskId: this.draggedTask.id,
-                    startTime: calculatedStartTime,
-                    duration: 60
-                });
-            }
+            // Allow same task multiple times - removed "exists" check
+            // Use calculated start time based on drop position
+            this.weekPlan[dayKey].push({
+                taskId: this.draggedTask.id,
+                startTime: calculatedStartTime,
+                duration: 60
+            });
 
             this.saveData();
             this.renderWeekCalendar();

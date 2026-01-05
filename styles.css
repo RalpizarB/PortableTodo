@@ -736,7 +736,8 @@ body.dark-mode .sticky-note-content textarea::placeholder {
     gap: 0;
     height: calc(100vh - 80px);
     padding: 15px;
-    overflow: hidden;
+    overflow: auto; /* Enable both horizontal and vertical scroll */
+    min-width: min-content; /* Allow horizontal expansion */
 }
 
 .resizable-panel {
@@ -747,6 +748,7 @@ body.dark-mode .sticky-note-content textarea::placeholder {
 .panel-content {
     height: 100%;
     overflow: auto;
+    min-width: 200px; /* Ensure panels have minimum width for horizontal scroll */
 }
 
 .resize-handle {
