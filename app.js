@@ -603,25 +603,57 @@ class PortableTodo {
     renderWeekCalendar() {
         const container = document.getElementById('weekCalendar');
         const days = this.getWeekDays();
+        const hours = this.getWorkingHours();
 
-        container.innerHTML = days.map(day => {
-            const dayTasks = this.weekPlan[day.key] || [];
-            
-            return `
-                <div class="calendar-day" data-day="${day.key}">
-                    <div class="calendar-day-header">
-                        <span>${day.name}</span>
-                        <span class="calendar-day-date">${day.date}</span>
+        // Create header with days
+        const headerHTML = `
+            <div class="calendar-grid-header">
+                <div class="calendar-time-column">Time</div>
+                ${days.map(day => `
+                    <div class="calendar-day-column ${this.isToday(day.key) ? 'today' : ''}">
+                        <div class="calendar-day-name">${day.name}</div>
+                        <div class="calendar-day-date">${day.date}</div>
                     </div>
-                    <div class="calendar-time-slots drop-zone" 
-                         ondragover="app.handleCalendarDragOver(event)"
-                         ondrop="app.handleCalendarDrop(event, '${day.key}')"
-                         ondragleave="app.handleCalendarDragLeave(event)">
-                        ${dayTasks.length > 0 ? dayTasks.map(task => this.createCalendarTaskElement(task, day.key)).join('') : '<small>Drop tasks here</small>'}
+                `).join('')}
+            </div>
+        `;
+
+        // Create grid with time slots
+        const gridHTML = `
+            <div class="calendar-grid-body">
+                ${hours.map(hour => `
+                    <div class="calendar-grid-row">
+                        <div class="calendar-time-label">${hour}</div>
+                        ${days.map(day => {
+                            const dayTasks = this.weekPlan[day.key] || [];
+                            return `
+                                <div class="calendar-time-slot drop-zone" 
+                                     data-day="${day.key}"
+                                     data-hour="${hour}"
+                                     ondragover="app.handleCalendarDragOver(event)"
+                                     ondrop="app.handleCalendarDrop(event, '${day.key}')"
+                                     ondragleave="app.handleCalendarDragLeave(event)">
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
-                </div>
-            `;
-        }).join('');
+                `).join('')}
+            </div>
+        `;
+
+        // Create task overlays
+        const tasksHTML = `
+            <div class="calendar-tasks-overlay">
+                ${days.map((day, dayIndex) => {
+                    const dayTasks = this.weekPlan[day.key] || [];
+                    return dayTasks.map(task => 
+                        this.createCalendarTaskElement(task, day.key, dayIndex)
+                    ).join('');
+                }).join('')}
+            </div>
+        `;
+
+        container.innerHTML = headerHTML + gridHTML + tasksHTML;
     }
 
     getWeekDays() {
@@ -647,28 +679,61 @@ class PortableTodo {
         return days;
     }
 
-    createCalendarTaskElement(calendarTask, dayKey) {
+    getWorkingHours() {
+        const hours = [];
+        for (let i = 8; i <= 18; i++) {
+            const hour12 = i > 12 ? i - 12 : i;
+            const ampm = i >= 12 ? 'PM' : 'AM';
+            hours.push(`${hour12}:00 ${ampm}`);
+        }
+        return hours;
+    }
+
+    isToday(dateKey) {
+        const today = new Date().toISOString().split('T')[0];
+        return dateKey === today;
+    }
+
+    createCalendarTaskElement(calendarTask, dayKey, dayIndex) {
         const task = this.tasks.find(t => t.id === calendarTask.taskId);
         if (!task) return '';
 
+        const startTime = calendarTask.startTime || 9; // Default 9 AM
         const duration = calendarTask.duration || 60;
+        
+        // Calculate position (8 AM = 0, each hour = 60px)
+        const top = (startTime - 8) * 60;
+        const height = (duration / 60) * 60; // Convert minutes to pixels
+        const left = dayIndex * 14.28; // 100% / 7 days
+
+        const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+        const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
 
         return `
-            <div class="calendar-task" draggable="true" 
+            <div class="calendar-task-block" 
+                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(14.28% - 4px);"
+                 draggable="true" 
                  data-task-id="${task.id}" 
                  data-day="${dayKey}"
                  ondragstart="app.handleCalendarTaskDragStart(event, '${task.id}', '${dayKey}')"
                  ondragend="app.handleCalendarTaskDragEnd(event)">
-                <div>${this.escapeHtml(task.name)}</div>
-                <div class="calendar-task-time">
-                    Duration: ${duration} min
-                    <button class="btn btn-sm btn-link text-danger float-end p-0" 
-                            onclick="app.removeFromCalendar('${dayKey}', '${task.id}')">
-                        <i class="bi bi-x"></i>
-                    </button>
+                <div class="calendar-task-header">
+                    <strong>${this.escapeHtml(task.name)}</strong>
+                    <button class="calendar-task-remove" 
+                            onclick="app.removeFromCalendar('${dayKey}', '${task.id}')">×</button>
                 </div>
+                <div class="calendar-task-time">${this.formatTime(startTime)} - ${this.formatTime(startTime + duration/60)}</div>
+                ${totalSubtasks > 0 ? `<div class="calendar-task-progress">${completedSubtasks}/${totalSubtasks} done</div>` : ''}
             </div>
         `;
+    }
+
+    formatTime(hour) {
+        const h = Math.floor(hour);
+        const m = Math.round((hour - h) * 60);
+        const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        return m > 0 ? `${hour12}:${m.toString().padStart(2, '0')} ${ampm}` : `${hour12}:00 ${ampm}`;
     }
 
     handleCalendarDragOver(event) {
@@ -693,12 +758,18 @@ class PortableTodo {
             // Check if task is already in this day
             const exists = this.weekPlan[dayKey].find(t => t.taskId === this.draggedTask.id);
             if (!exists) {
+                const startTime = prompt('Enter start time (8-18, e.g., 9 for 9 AM or 14.5 for 2:30 PM):', '9');
                 const duration = prompt('Enter duration in minutes:', '60');
-                if (duration) {
-                    this.weekPlan[dayKey].push({
-                        taskId: this.draggedTask.id,
-                        duration: parseInt(duration) || 60
-                    });
+                
+                if (startTime && duration) {
+                    const start = parseFloat(startTime);
+                    if (start >= 8 && start <= 18) {
+                        this.weekPlan[dayKey].push({
+                            taskId: this.draggedTask.id,
+                            startTime: start,
+                            duration: parseInt(duration) || 60
+                        });
+                    }
                 }
             }
 
