@@ -16,6 +16,15 @@ class PortableTodo {
         this.init();
     }
 
+    // Generate UUID for unique instance identification
+    generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     // ========================================
     // Initialization
     // ========================================
@@ -42,6 +51,25 @@ class PortableTodo {
         this.currentSortMode = localStorage.getItem('sortMode') || 'manual';
         this.stickyNotes = JSON.parse(localStorage.getItem('stickyNotes')) || [];
         this.nextNoteId = parseInt(localStorage.getItem('nextNoteId')) || 1;
+        
+        // Data migration: Add instanceId to existing calendar tasks
+        let migrationNeeded = false;
+        Object.keys(this.weekPlan).forEach(dayKey => {
+            this.weekPlan[dayKey] = this.weekPlan[dayKey].map(task => {
+                if (!task.instanceId) {
+                    migrationNeeded = true;
+                    return {
+                        ...task,
+                        instanceId: this.generateUUID()
+                    };
+                }
+                return task;
+            });
+        });
+        
+        if (migrationNeeded) {
+            this.saveData();
+        }
     }
 
     saveData() {
@@ -735,6 +763,7 @@ class PortableTodo {
         const task = this.tasks.find(t => t.id === calendarTask.taskId);
         if (!task) return '';
 
+        const instanceId = calendarTask.instanceId;  // Get unique instance ID
         const startTime = calendarTask.startTime !== undefined ? calendarTask.startTime : 9; // Default 9 AM
         const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
         
@@ -751,21 +780,22 @@ class PortableTodo {
             <div class="calendar-task-block" 
                  style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(${columnWidth}% - 4px);"
                  draggable="true" 
+                 data-instance-id="${instanceId}"
                  data-task-id="${task.id}" 
                  data-day="${dayKey}"
                  data-start-time="${startTime}"
                  data-duration="${duration}"
-                 ondragstart="app.handleCalendarTaskDragStart(event, '${task.id}', '${dayKey}')"
+                 ondragstart="app.handleCalendarTaskDragStart(event, '${instanceId}', '${dayKey}')"
                  ondragend="app.handleCalendarTaskDragEnd(event)">
                 <div class="calendar-task-header">
                     <strong>${this.escapeHtml(task.name)}</strong>
                     <button class="calendar-task-remove" 
-                            onclick="app.removeFromCalendar('${dayKey}', '${task.id}')">×</button>
+                            onclick="app.removeFromCalendar('${dayKey}', '${instanceId}')">×</button>
                 </div>
                 <div class="calendar-task-time">${this.formatTime(startTime)} - ${this.formatTime(startTime + duration/60)}</div>
                 ${totalSubtasks > 0 ? `<div class="calendar-task-progress">${completedSubtasks}/${totalSubtasks} done</div>` : ''}
                 <div class="calendar-task-resize-handle" 
-                     onmousedown="app.startResize(event, '${dayKey}', '${task.id}')"></div>
+                     onmousedown="app.startResize(event, '${dayKey}', '${instanceId}')"></div>
             </div>
         `;
     }
@@ -809,6 +839,7 @@ class PortableTodo {
             // Allow same task multiple times - removed "exists" check
             // Use calculated start time based on drop position
             this.weekPlan[dayKey].push({
+                instanceId: this.generateUUID(),  // Add unique instance ID
                 taskId: this.draggedTask.id,
                 startTime: calculatedStartTime,
                 duration: 60
@@ -818,10 +849,10 @@ class PortableTodo {
             this.renderWeekCalendar();
         } else if (this.draggedCalendarTask) {
             // Moving task between or within days
-            const { taskId, fromDay } = this.draggedCalendarTask;
+            const { instanceId, fromDay } = this.draggedCalendarTask;
             
             if (this.weekPlan[fromDay]) {
-                const taskData = this.weekPlan[fromDay].find(t => t.taskId === taskId);
+                const taskData = this.weekPlan[fromDay].find(t => t.instanceId === instanceId);
                 
                 if (taskData) {
                     if (fromDay === dayKey) {
@@ -829,7 +860,7 @@ class PortableTodo {
                         taskData.startTime = calculatedStartTime;
                     } else {
                         // Moving to different day
-                        this.weekPlan[fromDay] = this.weekPlan[fromDay].filter(t => t.taskId !== taskId);
+                        this.weekPlan[fromDay] = this.weekPlan[fromDay].filter(t => t.instanceId !== instanceId);
                         
                         if (!this.weekPlan[dayKey]) {
                             this.weekPlan[dayKey] = [];
@@ -846,8 +877,8 @@ class PortableTodo {
         }
     }
 
-    handleCalendarTaskDragStart(event, taskId, dayKey) {
-        this.draggedCalendarTask = { taskId, fromDay: dayKey };
+    handleCalendarTaskDragStart(event, instanceId, dayKey) {
+        this.draggedCalendarTask = { instanceId, fromDay: dayKey };
         event.target.style.opacity = '0.5';
     }
 
@@ -856,9 +887,9 @@ class PortableTodo {
         this.draggedCalendarTask = null;
     }
 
-    removeFromCalendar(dayKey, taskId) {
+    removeFromCalendar(dayKey, instanceId) {
         if (this.weekPlan[dayKey]) {
-            this.weekPlan[dayKey] = this.weekPlan[dayKey].filter(t => t.taskId !== taskId);
+            this.weekPlan[dayKey] = this.weekPlan[dayKey].filter(t => t.instanceId !== instanceId);
             this.saveData();
             this.renderWeekCalendar();
         }
@@ -868,7 +899,7 @@ class PortableTodo {
     // Resize Functionality
     // ========================================
     
-    startResize(event, dayKey, taskId) {
+    startResize(event, dayKey, instanceId) {
         event.stopPropagation();
         event.preventDefault();
         
@@ -880,7 +911,7 @@ class PortableTodo {
         
         const startY = event.clientY;
         const startHeight = taskBlock.offsetHeight;
-        const taskData = this.weekPlan[dayKey].find(t => t.taskId === taskId);
+        const taskData = this.weekPlan[dayKey].find(t => t.instanceId === instanceId);
         
         if (!taskData) return;
         
