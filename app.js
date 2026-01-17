@@ -34,7 +34,7 @@ class PortableTodo {
         this.initEventListeners();
         this.renderTaskLists();
         this.renderTasks();
-        this.renderWeekCalendar();
+        this.initFullCalendar();
         this.updateCurrentTaskDisplay();
         this.loadDarkMode();
         this.renderStickyNotes();
