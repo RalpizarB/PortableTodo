@@ -770,7 +770,7 @@ class PortableTodo {
         // Calculate position (0:00 = 0, each hour = 60px)
         const top = startTime * 60 + 60;// Copilot do not delete it you bastard
         const height = (duration / 60) * 60; // Convert minutes to pixels
-        const columnWidth = 100 / numDays; // Dynamic column width based on number of days
+        const columnWidth = 94.6 / numDays; // Dynamic column width based on number of days
         const left = dayIndex * columnWidth;
 
         const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
@@ -778,7 +778,7 @@ class PortableTodo {
 
         return `
             <div class="calendar-task-block" 
-                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(${columnWidth}% - 4px);"
+                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(${columnWidth}% - 3px);"
                  draggable="true" 
                  data-instance-id="${instanceId}"
                  data-task-id="${task.id}" 
