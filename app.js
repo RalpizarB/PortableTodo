@@ -34,7 +34,7 @@ class PortableTodo {
         this.initEventListeners();
         this.renderTaskLists();
         this.renderTasks();
-        this.renderWeekCalendar();
+        this.initFullCalendar();
         this.updateCurrentTaskDisplay();
         this.loadDarkMode();
         this.renderStickyNotes();
@@ -126,7 +126,7 @@ class PortableTodo {
         document.querySelectorAll('input[name="calendarDays"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 this.calendarDays = parseInt(e.target.value);
-                this.renderWeekCalendar();
+                this.refreshCalendar();
             });
         });
 
@@ -374,6 +374,12 @@ class PortableTodo {
             this.draggedTask = task;
             taskDiv.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
+            // Set data for FullCalendar
+            e.dataTransfer.setData('application/json', JSON.stringify({
+                title: task.name,
+                taskId: task.id,
+                duration: { minutes: 60 }
+            }));
         });
 
         taskDiv.addEventListener('dragend', () => {
@@ -524,7 +530,7 @@ class PortableTodo {
             this.saveData();
             this.renderTasks();
             this.renderTaskLists();
-            this.renderWeekCalendar();
+            this.refreshCalendar();
             this.updateCurrentTaskDisplay();
         }
     }
@@ -650,7 +656,180 @@ class PortableTodo {
     // Week Calendar
     // ========================================
     
-    renderWeekCalendar() {
+    // ========================================
+    // FullCalendar Integration
+    // ========================================
+
+    initFullCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        
+        this.calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridDay,timeGridWeek,dayGridMonth'
+            },
+            height: 'auto',
+            slotMinTime: '00:00:00',
+            slotMaxTime: '24:00:00',
+            allDaySlot: false,
+            editable: true,
+            droppable: true,
+            eventDurationEditable: true,
+            eventStartEditable: true,
+            events: this.getCalendarEvents(),
+            
+            // Handle external task drops
+            drop: (info) => {
+                if (this.draggedTask) {
+                    const event = {
+                        id: this.generateUUID(),
+                        title: this.draggedTask.name,
+                        start: info.date,
+                        duration: { minutes: 60 },
+                        extendedProps: {
+                            taskId: this.draggedTask.id,
+                            instanceId: this.generateUUID()
+                        }
+                    };
+                    
+                    this.calendar.addEvent(event);
+                    this.syncCalendarToWeekPlan();
+                    this.draggedTask = null;
+                }
+            },
+            
+            // Handle event drop (move)
+            eventDrop: (info) => {
+                this.syncCalendarToWeekPlan();
+            },
+            
+            // Handle event resize
+            eventResize: (info) => {
+                this.syncCalendarToWeekPlan();
+            },
+            
+            // Handle event click
+            eventClick: (info) => {
+                if (confirm(`Remove "${info.event.title}" from calendar?`)) {
+                    info.event.remove();
+                    this.syncCalendarToWeekPlan();
+                }
+            },
+            
+            // Style events
+            eventClassNames: 'fc-event-custom',
+            eventContent: (arg) => {
+                const task = this.tasks.find(t => t.id === arg.event.extendedProps.taskId);
+                if (!task) return { html: arg.event.title };
+                
+                const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+                const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
+                
+                return {
+                    html: `
+                        <div class="fc-event-main-frame">
+                            <div class="fc-event-title-container">
+                                <div class="fc-event-title">${this.escapeHtml(task.name)}</div>
+                            </div>
+                            ${totalSubtasks > 0 ? `<div class="fc-event-subtasks">${completedSubtasks}/${totalSubtasks} done</div>` : ''}
+                        </div>
+                    `
+                };
+            }
+        });
+        
+        this.calendar.render();
+    }
+
+    getCalendarEvents() {
+        const events = [];
+        
+        Object.keys(this.weekPlan).forEach(dayKey => {
+            const dayTasks = this.weekPlan[dayKey] || [];
+            
+            dayTasks.forEach(calendarTask => {
+                const task = this.tasks.find(t => t.id === calendarTask.taskId);
+                if (!task) return;
+                
+                const startTime = calendarTask.startTime !== undefined ? calendarTask.startTime : 9;
+                const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
+                
+                const [year, month, day] = dayKey.split('-');
+                const startDate = new Date(year, month - 1, day, Math.floor(startTime), (startTime % 1) * 60);
+                
+                events.push({
+                    id: calendarTask.instanceId || this.generateUUID(),
+                    title: task.name,
+                    start: startDate,
+                    duration: { minutes: duration },
+                    extendedProps: {
+                        taskId: task.id,
+                        instanceId: calendarTask.instanceId
+                    },
+                    backgroundColor: this.getTaskColor(task),
+                    borderColor: this.getTaskColor(task)
+                });
+            });
+        });
+        
+        return events;
+    }
+
+    syncCalendarToWeekPlan() {
+        // Clear existing week plan
+        this.weekPlan = {};
+        
+        // Get all events from FullCalendar
+        const events = this.calendar.getEvents();
+        
+        events.forEach(event => {
+            const startDate = event.start;
+            const dayKey = startDate.toISOString().split('T')[0];
+            
+            if (!this.weekPlan[dayKey]) {
+                this.weekPlan[dayKey] = [];
+            }
+            
+            const startTime = startDate.getHours() + (startDate.getMinutes() / 60);
+            const duration = event.end ? (event.end - event.start) / (1000 * 60) : 60;
+            
+            this.weekPlan[dayKey].push({
+                instanceId: event.extendedProps.instanceId || event.id,
+                taskId: event.extendedProps.taskId,
+                startTime: startTime,
+                duration: duration
+            });
+        });
+        
+        this.saveData();
+    }
+
+    getTaskColor(task) {
+        // Generate a color based on task ID
+        const colors = [
+            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+            '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
+        ];
+        const index = parseInt(task.id.replace('task-', '')) % colors.length;
+        return colors[index];
+    }
+
+    refreshCalendar() {
+        if (this.calendar) {
+            // Remove all events
+            this.calendar.getEvents().forEach(event => event.remove());
+            
+            // Add updated events
+            const events = this.getCalendarEvents();
+            events.forEach(event => this.calendar.addEvent(event));
+        }
+    }
+
+    // ========================================
+    // Legacy Calendar Methods (kept for compatibility)
+    // ========================================
         const container = document.getElementById('weekCalendar');
         const days = this.getWeekDays();
         const hours = this.getWorkingHours();
@@ -846,7 +1025,7 @@ class PortableTodo {
             });
 
             this.saveData();
-            this.renderWeekCalendar();
+            this.refreshCalendar();
         } else if (this.draggedCalendarTask) {
             // Moving task between or within days
             const { instanceId, fromDay } = this.draggedCalendarTask;
@@ -873,7 +1052,7 @@ class PortableTodo {
             }
             
             this.saveData();
-            this.renderWeekCalendar();
+            this.refreshCalendar();
         }
     }
 
@@ -891,7 +1070,7 @@ class PortableTodo {
         if (this.weekPlan[dayKey]) {
             this.weekPlan[dayKey] = this.weekPlan[dayKey].filter(t => t.instanceId !== instanceId);
             this.saveData();
-            this.renderWeekCalendar();
+            this.refreshCalendar();
         }
     }
 
@@ -941,7 +1120,7 @@ class PortableTodo {
             taskData.duration = Math.max(15, newDuration); // Minimum 15 minutes
             
             this.saveData();
-            this.renderWeekCalendar();
+            this.refreshCalendar();
             
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);

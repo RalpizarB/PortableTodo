@@ -776,3 +776,98 @@ body.dark-mode .sticky-note-content textarea::placeholder {
 .resize-handle:active {
     background: #0d6efd;
 }
+
+/* ========================================
+   FullCalendar Custom Styles
+   ======================================== */
+
+#calendar {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Full Calendar Theme */
+.fc {
+    --fc-border-color: var(--border-color);
+    --fc-button-bg-color: #0d6efd;
+    --fc-button-border-color: #0d6efd;
+    --fc-button-hover-bg-color: #0b5ed7;
+    --fc-button-hover-border-color: #0b5ed7;
+    --fc-button-active-bg-color: #0a58ca;
+    --fc-button-active-border-color: #0a58ca;
+    --fc-today-bg-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Dark mode adjustments for FullCalendar */
+body.dark-mode .fc {
+    --fc-page-bg-color: var(--bg-primary);
+    --fc-neutral-bg-color: var(--bg-secondary);
+    --fc-neutral-text-color: var(--text-primary);
+    --fc-border-color: var(--border-color);
+}
+
+body.dark-mode .fc .fc-col-header-cell {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.dark-mode .fc .fc-timegrid-slot {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .fc .fc-timegrid-axis {
+    color: var(--text-secondary);
+}
+
+body.dark-mode .fc .fc-daygrid-day {
+    background-color: var(--bg-primary);
+}
+
+body.dark-mode .fc .fc-scrollgrid {
+    border-color: var(--border-color);
+}
+
+/* Custom event styling */
+.fc-event-custom {
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 0.875rem;
+}
+
+.fc-event-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.fc-event-subtasks {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+/* Make events look nice */
+.fc-event {
+    border-left-width: 4px !important;
+}
+
+.fc-timegrid-event .fc-event-main {
+    padding: 4px;
+}
+
+/* Dragging tasks from task list */
+.task-item.dragging {
+    opacity: 0.5;
+    cursor: move;
+}
+
+/* FullCalendar responsive adjustments */
+@media (max-width: 768px) {
+    .fc .fc-toolbar {
+        font-size: 0.875rem;
+    }
+    
+    .fc .fc-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
