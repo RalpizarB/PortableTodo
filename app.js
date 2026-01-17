@@ -126,7 +126,7 @@ class PortableTodo {
         document.querySelectorAll('input[name="calendarDays"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 this.calendarDays = parseInt(e.target.value);
-                this.renderWeekCalendar();
+                this.updateCalendarView();
             });
         });
 
@@ -653,13 +653,29 @@ class PortableTodo {
     initFullCalendar() {
         const calendarEl = document.getElementById('weekCalendar');
         
+        // Determine initial view based on calendarDays setting
+        let initialView = 'timeGridWeek';
+        if (this.calendarDays === 1) {
+            initialView = 'timeGridDay';
+        } else if (this.calendarDays === 3) {
+            initialView = 'timeGrid';  // Custom 3-day view
+        } else if (this.calendarDays === 5) {
+            initialView = 'timeGridWeek';  // Will show Mon-Fri by default
+        }
+        
         this.calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            initialView: 'timeGridWeek',
+            initialView: initialView,
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: ''
+            },
+            views: {
+                timeGrid: {
+                    type: 'timeGrid',
+                    duration: { days: this.calendarDays }
+                }
             },
             slotMinTime: '00:00:00',
             slotMaxTime: '24:00:00',
@@ -670,6 +686,7 @@ class PortableTodo {
             height: 'auto',
             slotDuration: '01:00:00',
             snapDuration: '00:15:00',
+            weekends: true,
             events: this.getCalendarEvents(),
             
             // Handle external task drops
@@ -764,6 +781,25 @@ class PortableTodo {
         });
         
         this.calendar.render();
+    }
+    
+    updateCalendarView() {
+        if (!this.calendar) return;
+        
+        let viewType = 'timeGridWeek';
+        let duration = 7;
+        
+        if (this.calendarDays === 1) {
+            viewType = 'timeGridDay';
+        } else {
+            viewType = 'timeGrid';
+            duration = this.calendarDays;
+        }
+        
+        // Update the view with custom duration
+        this.calendar.changeView(viewType, {
+            duration: { days: duration }
+        });
     }
     
     getCalendarEvents() {
