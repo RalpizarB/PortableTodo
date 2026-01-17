@@ -647,308 +647,176 @@ class PortableTodo {
     }
 
     // ========================================
-    // Week Calendar
+    // Week Calendar - FullCalendar Integration
     // ========================================
     
-    renderWeekCalendar() {
-        const container = document.getElementById('weekCalendar');
-        const days = this.getWeekDays();
-        const hours = this.getWorkingHours();
-        const numDays = days.length;
-
-        // Create header with days
-        const headerHTML = `
-            <div class="calendar-grid-header" style="grid-template-columns: 80px repeat(${numDays}, 1fr);">
-                <div class="calendar-time-column">Time</div>
-                ${days.map(day => `
-                    <div class="calendar-day-column ${this.isToday(day.key) ? 'today' : ''}">
-                        <div class="calendar-day-name">${day.name}</div>
-                        <div class="calendar-day-date">${day.date}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-        // Create grid with time slots
-        const gridHTML = `
-            <div class="calendar-grid-body">
-                ${hours.map(hour => `
-                    <div class="calendar-grid-row" style="grid-template-columns: 80px repeat(${numDays}, 1fr);">
-                        <div class="calendar-time-label">${hour}</div>
-                        ${days.map(day => {
-                            const dayTasks = this.weekPlan[day.key] || [];
-                            return `
-                                <div class="calendar-time-slot drop-zone" 
-                                     data-day="${day.key}"
-                                     data-hour="${hour}"
-                                     ondragover="app.handleCalendarDragOver(event)"
-                                     ondrop="app.handleCalendarDrop(event, '${day.key}')"
-                                     ondragleave="app.handleCalendarDragLeave(event)">
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-        // Create task overlays
-        const tasksHTML = `
-            <div class="calendar-tasks-overlay">
-                ${days.map((day, dayIndex) => {
-                    const dayTasks = this.weekPlan[day.key] || [];
-                    return dayTasks.map(task => 
-                        this.createCalendarTaskElement(task, day.key, dayIndex, numDays)
-                    ).join('');
-                }).join('')}
-            </div>
-        `;
-
-        container.innerHTML = headerHTML + gridHTML + tasksHTML;
-    }
-
-    getWeekDays() {
-        const days = [];
-        const today = new Date();
-        const currentDay = today.getDay();
+    initFullCalendar() {
+        const calendarEl = document.getElementById('weekCalendar');
         
-        let startDate;
-        if (this.calendarDays === 1) {
-            // Show only today
-            startDate = new Date(today);
-        } else if (this.calendarDays === 5) {
-            // Show Monday-Friday
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
-            startDate = monday;
-        } else {
-            // Show from Monday for 3 or 7 days
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
-            startDate = monday;
-        }
-
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-        for (let i = 0; i < this.calendarDays; i++) {
-            const date = new Date(startDate);
-            date.setDate(startDate.getDate() + i);
+        this.calendar = new FullCalendar.Calendar(calendarEl, {
+            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            slotMinTime: '00:00:00',
+            slotMaxTime: '24:00:00',
+            allDaySlot: false,
+            editable: true,
+            droppable: true,
+            eventResizableFromStart: true,
+            height: 'auto',
+            slotDuration: '01:00:00',
+            snapDuration: '00:15:00',
+            events: this.getCalendarEvents(),
             
-            days.push({
-                key: date.toISOString().split('T')[0],
-                name: dayNames[date.getDay()],
-                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            });
-        }
-
-        return days;
-    }
-
-    getWorkingHours() {
-        const hours = [];
-        for (let i = 0; i <= 23; i++) {
-            const hour12 = i === 0 ? 12 : (i > 12 ? i - 12 : i);
-            const ampm = i >= 12 ? 'PM' : 'AM';
-            hours.push(`${hour12}:00 ${ampm}`);
-        }
-        return hours;
-    }
-
-    isToday(dateKey) {
-        const today = new Date().toISOString().split('T')[0];
-        return dateKey === today;
-    }
-
-    createCalendarTaskElement(calendarTask, dayKey, dayIndex, numDays) {
-        const task = this.tasks.find(t => t.id === calendarTask.taskId);
-        if (!task) return '';
-
-        const instanceId = calendarTask.instanceId;  // Get unique instance ID
-        const startTime = calendarTask.startTime !== undefined ? calendarTask.startTime : 9; // Default 9 AM
-        const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
-        
-        // Calculate position (0:00 = 0, each hour = 60px)
-        const top = startTime * 60 + 60;// Copilot do not delete it you bastard
-        const height = (duration / 60) * 60; // Convert minutes to pixels
-        const columnWidth = 94.6 / numDays; // Dynamic column width based on number of days
-        const left = dayIndex * columnWidth;
-
-        const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
-        const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
-
-        return `
-            <div class="calendar-task-block" 
-                 style="top: ${top}px; height: ${height}px; left: calc(${left}% + 80px); width: calc(${columnWidth}% - 3px);"
-                 draggable="true" 
-                 data-instance-id="${instanceId}"
-                 data-task-id="${task.id}" 
-                 data-day="${dayKey}"
-                 data-start-time="${startTime}"
-                 data-duration="${duration}"
-                 ondragstart="app.handleCalendarTaskDragStart(event, '${instanceId}', '${dayKey}')"
-                 ondragend="app.handleCalendarTaskDragEnd(event)">
-                <div class="calendar-task-header">
-                    <strong>${this.escapeHtml(task.name)}</strong>
-                    <button class="calendar-task-remove" 
-                            onclick="app.removeFromCalendar('${dayKey}', '${instanceId}')">×</button>
-                </div>
-                <div class="calendar-task-time">${this.formatTime(startTime)} - ${this.formatTime(startTime + duration/60)}</div>
-                ${totalSubtasks > 0 ? `<div class="calendar-task-progress">${completedSubtasks}/${totalSubtasks} done</div>` : ''}
-                <div class="calendar-task-resize-handle" 
-                     onmousedown="app.startResize(event, '${dayKey}', '${instanceId}')"></div>
-            </div>
-        `;
-    }
-
-    formatTime(hour) {
-        const h = Math.floor(hour);
-        const m = Math.round((hour - h) * 60);
-        const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        return m > 0 ? `${hour12}:${m.toString().padStart(2, '0')} ${ampm}` : `${hour12}:00 ${ampm}`;
-    }
-
-    handleCalendarDragOver(event) {
-        event.preventDefault();
-        event.currentTarget.classList.add('drag-over');
-    }
-
-    handleCalendarDragLeave(event) {
-        event.currentTarget.classList.remove('drag-over');
-    }
-
-    handleCalendarDrop(event, dayKey) {
-        event.preventDefault();
-        event.currentTarget.classList.remove('drag-over');
-
-        // Calculate start time based on drop position
-        const calendarBody = document.querySelector('.calendar-grid-body');
-        if (!calendarBody) return;
-        
-        const rect = calendarBody.getBoundingClientRect();
-        const relativeY = event.clientY - rect.top + calendarBody.scrollTop; // Account for scroll position
-        const hourOffset = Math.floor(relativeY / 60); // 60px per hour
-        const calculatedStartTime = Math.max(0, Math.min(23, hourOffset)); // Clamp between 0 (midnight) and 23 (11 PM)
-
-        if (this.draggedTask) {
-            // Adding task from task list
-            if (!this.weekPlan[dayKey]) {
-                this.weekPlan[dayKey] = [];
-            }
-
-            // Allow same task multiple times - removed "exists" check
-            // Use calculated start time based on drop position
-            this.weekPlan[dayKey].push({
-                instanceId: this.generateUUID(),  // Add unique instance ID
-                taskId: this.draggedTask.id,
-                startTime: calculatedStartTime,
-                duration: 60
-            });
-
-            this.saveData();
-            this.renderWeekCalendar();
-        } else if (this.draggedCalendarTask) {
-            // Moving task between or within days
-            const { instanceId, fromDay } = this.draggedCalendarTask;
-            
-            if (this.weekPlan[fromDay]) {
-                const taskData = this.weekPlan[fromDay].find(t => t.instanceId === instanceId);
-                
-                if (taskData) {
-                    if (fromDay === dayKey) {
-                        // Moving within same day - update start time
-                        taskData.startTime = calculatedStartTime;
-                    } else {
-                        // Moving to different day
-                        this.weekPlan[fromDay] = this.weekPlan[fromDay].filter(t => t.instanceId !== instanceId);
-                        
-                        if (!this.weekPlan[dayKey]) {
-                            this.weekPlan[dayKey] = [];
-                        }
-                        // Update start time when moving to new day
-                        taskData.startTime = calculatedStartTime;
-                        this.weekPlan[dayKey].push(taskData);
+            // Handle external task drops
+            drop: (info) => {
+                if (this.draggedTask) {
+                    const dayKey = info.dateStr.split('T')[0];
+                    const startTime = parseInt(info.dateStr.split('T')[1].split(':')[0]);
+                    
+                    if (!this.weekPlan[dayKey]) {
+                        this.weekPlan[dayKey] = [];
                     }
+                    
+                    this.weekPlan[dayKey].push({
+                        instanceId: this.generateUUID(),
+                        taskId: this.draggedTask.id,
+                        startTime: startTime,
+                        duration: 60
+                    });
+                    
+                    this.saveData();
+                    this.refreshCalendar();
+                }
+            },
+            
+            // Handle event drops (moving events)
+            eventDrop: (info) => {
+                const instanceId = info.event.id;
+                const newDate = info.event.start;
+                const dayKey = newDate.toISOString().split('T')[0];
+                const startTime = newDate.getHours();
+                
+                // Find and update the task
+                let found = false;
+                Object.keys(this.weekPlan).forEach(day => {
+                    if (!found && this.weekPlan[day]) {
+                        const taskIndex = this.weekPlan[day].findIndex(t => t.instanceId === instanceId);
+                        if (taskIndex !== -1) {
+                            const task = this.weekPlan[day][taskIndex];
+                            
+                            // Remove from old day
+                            this.weekPlan[day].splice(taskIndex, 1);
+                            
+                            // Add to new day
+                            if (!this.weekPlan[dayKey]) {
+                                this.weekPlan[dayKey] = [];
+                            }
+                            task.startTime = startTime;
+                            this.weekPlan[dayKey].push(task);
+                            found = true;
+                        }
+                    }
+                });
+                
+                this.saveData();
+                this.refreshCalendar();
+            },
+            
+            // Handle event resize
+            eventResize: (info) => {
+                const instanceId = info.event.id;
+                const newDuration = (info.event.end - info.event.start) / 60000; // milliseconds to minutes
+                
+                // Find and update the task duration
+                Object.keys(this.weekPlan).forEach(day => {
+                    if (this.weekPlan[day]) {
+                        const task = this.weekPlan[day].find(t => t.instanceId === instanceId);
+                        if (task) {
+                            task.duration = Math.max(15, Math.round(newDuration));
+                        }
+                    }
+                });
+                
+                this.saveData();
+                this.refreshCalendar();
+            },
+            
+            // Handle event click (remove from calendar)
+            eventClick: (info) => {
+                if (confirm('Remove this task from calendar?')) {
+                    const instanceId = info.event.id;
+                    
+                    Object.keys(this.weekPlan).forEach(day => {
+                        if (this.weekPlan[day]) {
+                            this.weekPlan[day] = this.weekPlan[day].filter(t => t.instanceId !== instanceId);
+                        }
+                    });
+                    
+                    this.saveData();
+                    this.refreshCalendar();
                 }
             }
-            
-            this.saveData();
-            this.renderWeekCalendar();
-        }
+        });
+        
+        this.calendar.render();
     }
-
-    handleCalendarTaskDragStart(event, instanceId, dayKey) {
-        this.draggedCalendarTask = { instanceId, fromDay: dayKey };
-        event.target.style.opacity = '0.5';
-    }
-
-    handleCalendarTaskDragEnd(event) {
-        event.target.style.opacity = '1';
-        this.draggedCalendarTask = null;
-    }
-
-    removeFromCalendar(dayKey, instanceId) {
-        if (this.weekPlan[dayKey]) {
-            this.weekPlan[dayKey] = this.weekPlan[dayKey].filter(t => t.instanceId !== instanceId);
-            this.saveData();
-            this.renderWeekCalendar();
-        }
-    }
-
-    // ========================================
-    // Resize Functionality
-    // ========================================
     
-    startResize(event, dayKey, instanceId) {
-        event.stopPropagation();
-        event.preventDefault();
+    getCalendarEvents() {
+        const events = [];
         
-        const taskBlock = event.target.closest('.calendar-task-block');
-        if (!taskBlock) return;
-        
-        taskBlock.classList.add('resizing');
-        taskBlock.draggable = false;
-        
-        const startY = event.clientY;
-        const startHeight = taskBlock.offsetHeight;
-        const taskData = this.weekPlan[dayKey].find(t => t.instanceId === instanceId);
-        
-        if (!taskData) return;
-        
-        const onMouseMove = (e) => {
-            const deltaY = e.clientY - startY;
-            const newHeight = Math.max(30, startHeight + deltaY); // Minimum 30px
-            const newDuration = Math.round((newHeight / 60) * 60); // Convert pixels to minutes
-            
-            taskBlock.style.height = newHeight + 'px';
-            
-            // Update the time display
-            const startTime = parseFloat(taskBlock.dataset.startTime);
-            const timeDisplay = taskBlock.querySelector('.calendar-task-time');
-            if (timeDisplay) {
-                timeDisplay.textContent = `${this.formatTime(startTime)} - ${this.formatTime(startTime + newDuration/60)}`;
+        Object.keys(this.weekPlan).forEach(dayKey => {
+            if (this.weekPlan[dayKey]) {
+                this.weekPlan[dayKey].forEach(calendarTask => {
+                    const task = this.tasks.find(t => t.id === calendarTask.taskId);
+                    if (task) {
+                        const startTime = calendarTask.startTime !== undefined ? calendarTask.startTime : 9;
+                        const duration = calendarTask.duration !== undefined ? calendarTask.duration : 60;
+                        
+                        const startHour = String(Math.floor(startTime)).padStart(2, '0');
+                        const startMin = String(Math.round((startTime - Math.floor(startTime)) * 60)).padStart(2, '0');
+                        
+                        events.push({
+                            id: calendarTask.instanceId,
+                            title: task.name,
+                            start: `${dayKey}T${startHour}:${startMin}:00`,
+                            duration: { minutes: duration },
+                            backgroundColor: this.getTaskColor(task.id),
+                            borderColor: this.getTaskColor(task.id),
+                            textColor: '#fff'
+                        });
+                    }
+                });
             }
-        };
+        });
         
-        const onMouseUp = (e) => {
-            taskBlock.classList.remove('resizing');
-            taskBlock.draggable = true;
-            
-            const finalHeight = taskBlock.offsetHeight;
-            const newDuration = Math.round((finalHeight / 60) * 60); // Convert pixels to minutes
-            
-            // Update the task data
-            taskData.duration = Math.max(15, newDuration); // Minimum 15 minutes
-            
-            this.saveData();
-            this.renderWeekCalendar();
-            
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-        
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        return events;
+    }
+    
+    getTaskColor(taskId) {
+        // Generate a consistent color based on task ID
+        let hash = 0;
+        for (let i = 0; i < taskId.length; i++) {
+            hash = taskId.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = hash % 360;
+        return `hsl(${hue}, 65%, 55%)`;
+    }
+    
+    refreshCalendar() {
+        if (this.calendar) {
+            this.calendar.removeAllEvents();
+            this.calendar.addEventSource(this.getCalendarEvents());
+        }
+    }
+    
+    renderWeekCalendar() {
+        // Redirect to refreshCalendar for backwards compatibility
+        this.refreshCalendar();
     }
 
     // ========================================
