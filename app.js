@@ -54,37 +54,46 @@ class PortableTodo {
 
     // Calendar Initialization
     initializeCalendar() {
-        const calendarEl = document.getElementById('calendar');
-        this.calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            editable: true,
-            droppable: true,
-            events: this.calendarEvents,
-            eventClick: (info) => {
-                if (confirm(`Delete event '${info.event.title}'?`)) {
-                    info.event.remove();
-                    this.removeCalendarEvent(info.event.id);
-                }
-            },
-            eventDrop: (info) => {
-                this.updateCalendarEvent(info.event);
-            },
-            eventResize: (info) => {
-                this.updateCalendarEvent(info.event);
-            },
-            dateClick: (info) => {
-                const title = prompt('Enter event title:');
-                if (title) {
-                    this.addCalendarEvent(title, info.dateStr);
-                }
+        try {
+            if (typeof FullCalendar === 'undefined') {
+                console.warn('FullCalendar library not loaded. Calendar features will be disabled.');
+                return;
             }
-        });
-        this.calendar.render();
+            
+            const calendarEl = document.getElementById('calendar');
+            this.calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                editable: true,
+                droppable: true,
+                events: this.calendarEvents,
+                eventClick: (info) => {
+                    if (confirm(`Delete event '${info.event.title}'?`)) {
+                        info.event.remove();
+                        this.removeCalendarEvent(info.event.id);
+                    }
+                },
+                eventDrop: (info) => {
+                    this.updateCalendarEvent(info.event);
+                },
+                eventResize: (info) => {
+                    this.updateCalendarEvent(info.event);
+                },
+                dateClick: (info) => {
+                    const title = prompt('Enter event title:');
+                    if (title) {
+                        this.addCalendarEvent(title, info.dateStr);
+                    }
+                }
+            });
+            this.calendar.render();
+        } catch (error) {
+            console.error('Error initializing calendar:', error);
+        }
     }
 
     addCalendarEvent(title, date, allDay = true) {
@@ -96,7 +105,9 @@ class PortableTodo {
         };
         this.calendarEvents.push(event);
         this.saveToStorage('calendarEvents', this.calendarEvents);
-        this.calendar.addEvent(event);
+        if (this.calendar) {
+            this.calendar.addEvent(event);
+        }
     }
 
     updateCalendarEvent(event) {
