@@ -16,6 +16,8 @@ A static task organizing application that works only on your local side, no serv
 
 Simply open `index.html` in your browser or visit the GitHub Pages deployment.
 
+**Note:** The app works directly with the `file://` protocol - no server required for local development!
+
 ### Quick Todos
 - Type your todo in the input field and click "Add" or press Enter
 - Check the checkbox to mark as complete
@@ -42,10 +44,11 @@ Simply open `index.html` in your browser or visit the GitHub Pages deployment.
 
 ## Technology
 
-- Pure HTML, CSS, and JavaScript
+- Pure HTML, CSS, and JavaScript (ES6 classes, modular architecture)
 - [FullCalendar Scheduler](https://fullcalendar.io/) for calendar functionality
 - LocalStorage API for data persistence
-- No backend or server required
+- No backend or build process required
+- Modular code structure (see `ARCHITECTURE.md`)
 
 ## Deployment
 
