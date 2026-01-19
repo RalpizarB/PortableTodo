@@ -1,43 +1,61 @@
 // PortableTodo - Local Storage Task Planner
-// All data is stored in browser's localStorage
+// Refactored modular architecture
 
 class PortableTodo {
   constructor() {
+    // Load data from storage
     this.todos = this.loadFromStorage("todos") || [];
     this.taskLists = this.loadFromStorage("taskLists") || [];
     this.calendarEvents = this.loadFromStorage("calendarEvents") || [];
     this.nightMode = this.loadFromStorage("nightMode") || false;
-    this.calendar = null;
+    this.settings = this.loadFromStorage("settings") || {
+      defaultTaskColor: "#3498db",
+    };
+    this.stickyNotes = this.loadFromStorage("stickyNotes") || [];
+    this.stickiesVisible = this.loadFromStorage("stickiesVisible") || false;
+
+    // Default color palette
+    this.defaultColors = [
+      "#3498db",
+      "#e74c3c",
+      "#2ecc71",
+      "#f39c12",
+      "#9b59b6",
+      "#1abc9c",
+      "#34495e",
+      "#e67e22",
+      "#95a5a6",
+      "#16a085",
+    ];
+
+    // Initialize managers
+    this.calendarManager = new CalendarManager(this);
+    this.todoManager = new TodoManager(this);
+    this.taskListManager = new TaskListManager(this);
+    this.settingsManager = new SettingsManager(this);
+    this.stickyNotesManager = new StickyNotesManager(this);
 
     this.init();
   }
 
   init() {
     this.initializeNightMode();
-    this.initializeCalendar();
-    this.initializeTodos();
-    this.initializeTaskLists();
+    this.calendarManager.initialize();
+    this.todoManager.initialize();
+    this.taskListManager.initialize();
+    this.settingsManager.initialize();
+    this.stickyNotesManager.initialize();
     this.setupEventListeners();
-    this.initializeDraggable();
+    this.calendarManager.initializeDraggable();
   }
 
-  // Local Storage Methods
+  // Storage methods (delegates to StorageManager)
   loadFromStorage(key) {
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error(`Error loading ${key} from storage:`, error);
-      return null;
-    }
+    return StorageManager.loadFromStorage(key);
   }
 
   saveToStorage(key, data) {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error saving ${key} to storage:`, error);
-    }
+    StorageManager.saveToStorage(key, data);
   }
 
   // Night Mode
@@ -53,374 +71,6 @@ class PortableTodo {
     this.saveToStorage("nightMode", this.nightMode);
   }
 
-  // Calendar Initialization
-  initializeCalendar() {
-    try {
-      if (typeof FullCalendar === "undefined") {
-        console.warn(
-          "FullCalendar library not loaded. Calendar features will be disabled.",
-        );
-        return;
-      }
-
-      const calendarEl = document.getElementById("calendar");
-      this.calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: "timeGridWeek",
-        headerToolbar: {
-          left: "prev,next today",
-          center: "title",
-          right:
-            "dayGridMonth,timeGridWeek,timeGridWorkWeek,timeGrid3Day,timeGridDay",
-        },
-        views: {
-          timeGrid3Day: {
-            type: "timeGrid",
-            duration: { days: 3 },
-            buttonText: "3 days",
-          },
-          timeGridWorkWeek: {
-            type: "timeGridWeek",
-            hiddenDays: [0, 6], // Hide Sunday and Saturday
-            buttonText: "Work Week",
-          },
-        },
-        slotDuration: "00:15:00", // 10-minute time slots
-        slotLabelInterval: "01:00:00", // Show labels every 30 minutes for readability
-        nowIndicator: true, // Show current time indicator line
-        editable: true,
-        droppable: true,
-        events: this.calendarEvents,
-        drop: (info) => {
-          // Handle external element drop
-          const title = info.draggedEl.getAttribute("data-event-title");
-          if (title) {
-            this.addCalendarEvent(title, info.dateStr);
-          }
-        },
-        eventClick: (info) => {
-          if (confirm(`Delete event '${info.event.title}'?`)) {
-            info.event.remove();
-            this.removeCalendarEvent(info.event.id);
-          }
-        },
-        eventDrop: (info) => {
-          this.updateCalendarEvent(info.event);
-        },
-        eventResize: (info) => {
-          this.updateCalendarEvent(info.event);
-        },
-        dateClick: (info) => {
-          const title = prompt("Enter event title:");
-          if (title) {
-            this.addCalendarEvent(title, info.dateStr);
-          }
-        },
-      });
-      this.calendar.render();
-    } catch (error) {
-      console.error("Error initializing calendar:", error);
-    }
-  }
-
-  // Initialize Draggable for external elements
-  initializeDraggable() {
-    try {
-      if (typeof FullCalendar === "undefined" || !FullCalendar.Draggable) {
-        console.warn("FullCalendar Draggable not available");
-        return;
-      }
-
-      // Make todo list draggable
-      const todoListEl = document.getElementById("todoList");
-      new FullCalendar.Draggable(todoListEl, {
-        itemSelector: ".todo-item",
-        eventData: (eventEl) => {
-          const title = eventEl.querySelector("span").textContent;
-          return {
-            title: title,
-            duration: "01:00",
-          };
-        },
-      });
-
-      // Make task lists draggable
-      const taskListsEl = document.getElementById("taskLists");
-      new FullCalendar.Draggable(taskListsEl, {
-        itemSelector: ".task-item",
-        eventData: (eventEl) => {
-          const title = eventEl.querySelector("span").textContent;
-          return {
-            title: title,
-            duration: "01:00",
-          };
-        },
-      });
-    } catch (error) {
-      console.error("Error initializing draggable:", error);
-    }
-  }
-
-  addCalendarEvent(title, date, allDay = true) {
-    const event = {
-      id: Date.now().toString(),
-      title: title,
-      start: date,
-      allDay: allDay,
-    };
-    this.calendarEvents.push(event);
-    this.saveToStorage("calendarEvents", this.calendarEvents);
-    if (this.calendar) {
-      this.calendar.addEvent(event);
-    }
-  }
-
-  updateCalendarEvent(event) {
-    const index = this.calendarEvents.findIndex((e) => e.id === event.id);
-    if (index !== -1) {
-      this.calendarEvents[index] = {
-        id: event.id,
-        title: event.title,
-        start: event.start.toISOString(),
-        end: event.end ? event.end.toISOString() : null,
-        allDay: event.allDay,
-      };
-      this.saveToStorage("calendarEvents", this.calendarEvents);
-    }
-  }
-
-  removeCalendarEvent(eventId) {
-    this.calendarEvents = this.calendarEvents.filter((e) => e.id !== eventId);
-    this.saveToStorage("calendarEvents", this.calendarEvents);
-  }
-
-  // Todos Methods
-  initializeTodos() {
-    this.renderTodos();
-  }
-
-  renderTodos() {
-    const todoList = document.getElementById("todoList");
-    todoList.innerHTML = "";
-
-    this.todos.forEach((todo, index) => {
-      const li = document.createElement("li");
-      li.className = `todo-item ${todo.completed ? "completed" : ""}`;
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = todo.completed;
-      checkbox.addEventListener("change", () => this.toggleTodo(index));
-
-      const span = document.createElement("span");
-      span.textContent = todo.text;
-
-      span.addEventListener("dblclick", () => {
-        const newDate = prompt("Add to calendar? Enter date (YYYY-MM-DD):");
-        if (newDate) {
-          this.addCalendarEvent(todo.text, newDate);
-        }
-      });
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "🗑️";
-      deleteBtn.title = "Delete todo";
-      deleteBtn.addEventListener("click", () => this.deleteTodo(index));
-
-      li.appendChild(checkbox);
-      li.appendChild(span);
-      li.appendChild(deleteBtn);
-      todoList.appendChild(li);
-    });
-  }
-
-  addTodo(text) {
-    if (text.trim()) {
-      this.todos.push({
-        text: text.trim(),
-        completed: false,
-        createdAt: new Date().toISOString(),
-      });
-      this.saveToStorage("todos", this.todos);
-      this.renderTodos();
-    }
-  }
-
-  toggleTodo(index) {
-    this.todos[index].completed = !this.todos[index].completed;
-    this.saveToStorage("todos", this.todos);
-    this.renderTodos();
-  }
-
-  deleteTodo(index) {
-    this.todos.splice(index, 1);
-    this.saveToStorage("todos", this.todos);
-    this.renderTodos();
-  }
-
-  // Task Lists Methods
-  initializeTaskLists() {
-    this.renderTaskLists();
-  }
-
-  renderTaskLists() {
-    const taskListsContainer = document.getElementById("taskLists");
-    taskListsContainer.innerHTML = "";
-
-    this.taskLists.forEach((list, listIndex) => {
-      const listDiv = document.createElement("div");
-      listDiv.className = "task-list";
-
-      const header = document.createElement("div");
-      header.className = "task-list-header";
-
-      const title = document.createElement("div");
-      title.className = "task-list-title";
-      title.textContent = list.name;
-      title.contentEditable = true;
-      title.addEventListener("blur", (e) => {
-        this.updateTaskListName(listIndex, e.target.textContent);
-      });
-
-      const controls = document.createElement("div");
-      controls.className = "task-list-controls";
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "🗑️";
-      deleteBtn.title = "Delete list";
-      deleteBtn.addEventListener("click", () => this.deleteTaskList(listIndex));
-
-      controls.appendChild(deleteBtn);
-      header.appendChild(title);
-      header.appendChild(controls);
-
-      const inputContainer = document.createElement("div");
-      inputContainer.className = "task-input-container";
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Add a task...";
-      input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          this.addTask(listIndex, input.value);
-          input.value = "";
-        }
-      });
-
-      const addBtn = document.createElement("button");
-      addBtn.textContent = "+";
-      addBtn.addEventListener("click", () => {
-        this.addTask(listIndex, input.value);
-        input.value = "";
-      });
-
-      inputContainer.appendChild(input);
-      inputContainer.appendChild(addBtn);
-
-      const tasksList = document.createElement("ul");
-      tasksList.className = "tasks";
-
-      // Ensure tasks array exists (fix for undefined error)
-      if (!list.tasks) {
-        list.tasks = [];
-        this.saveToStorage("taskLists", this.taskLists);
-      }
-
-      list.tasks.forEach((task, taskIndex) => {
-        const taskLi = document.createElement("li");
-        taskLi.className = `task-item ${task.completed ? "completed" : ""}`;
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = task.completed;
-        checkbox.addEventListener("change", () =>
-          this.toggleTask(listIndex, taskIndex),
-        );
-
-        const taskSpan = document.createElement("span");
-        taskSpan.textContent = task.text;
-
-        taskSpan.addEventListener("dblclick", () => {
-          const newDate = prompt("Add to calendar? Enter date (YYYY-MM-DD):");
-          if (newDate) {
-            this.addCalendarEvent(task.text, newDate);
-          }
-        });
-
-        const taskDeleteBtn = document.createElement("button");
-        taskDeleteBtn.textContent = "🗑️";
-        taskDeleteBtn.title = "Delete task";
-        taskDeleteBtn.addEventListener("click", () =>
-          this.deleteTask(listIndex, taskIndex),
-        );
-
-        taskLi.appendChild(checkbox);
-        taskLi.appendChild(taskSpan);
-        taskLi.appendChild(taskDeleteBtn);
-        tasksList.appendChild(taskLi);
-      });
-
-      listDiv.appendChild(header);
-      listDiv.appendChild(inputContainer);
-      listDiv.appendChild(tasksList);
-      taskListsContainer.appendChild(listDiv);
-    });
-  }
-
-  addTaskList() {
-    const name = prompt("Enter list name:");
-    if (name && name.trim()) {
-      this.taskLists.push({
-        name: name.trim(),
-        tasks: [],
-        createdAt: new Date().toISOString(),
-      });
-      this.saveToStorage("taskLists", this.taskLists);
-      this.renderTaskLists();
-    }
-  }
-
-  updateTaskListName(listIndex, newName) {
-    if (newName && newName.trim()) {
-      this.taskLists[listIndex].name = newName.trim();
-      this.saveToStorage("taskLists", this.taskLists);
-    } else {
-      this.renderTaskLists();
-    }
-  }
-
-  deleteTaskList(listIndex) {
-    if (confirm("Delete this entire list?")) {
-      this.taskLists.splice(listIndex, 1);
-      this.saveToStorage("taskLists", this.taskLists);
-      this.renderTaskLists();
-    }
-  }
-
-  addTask(listIndex, text) {
-    if (text && text.trim()) {
-      this.taskLists[listIndex].tasks.push({
-        text: text.trim(),
-        completed: false,
-        createdAt: new Date().toISOString(),
-      });
-      this.saveToStorage("taskLists", this.taskLists);
-      this.renderTaskLists();
-    }
-  }
-
-  toggleTask(listIndex, taskIndex) {
-    this.taskLists[listIndex].tasks[taskIndex].completed =
-      !this.taskLists[listIndex].tasks[taskIndex].completed;
-    this.saveToStorage("taskLists", this.taskLists);
-    this.renderTaskLists();
-  }
-
-  deleteTask(listIndex, taskIndex) {
-    this.taskLists[listIndex].tasks.splice(taskIndex, 1);
-    this.saveToStorage("taskLists", this.taskLists);
-    this.renderTaskLists();
-  }
-
   // Event Listeners
   setupEventListeners() {
     // Night Mode Toggle
@@ -428,24 +78,9 @@ class PortableTodo {
       this.toggleNightMode();
     });
 
-    // Add Todo
-    const todoInput = document.getElementById("todoInput");
-    document.getElementById("addTodoBtn").addEventListener("click", () => {
-      this.addTodo(todoInput.value);
-      todoInput.value = "";
-    });
-
-    todoInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        this.addTodo(todoInput.value);
-        todoInput.value = "";
-      }
-    });
-
-    // Add Task List
-    document.getElementById("addListBtn").addEventListener("click", () => {
-      this.addTaskList();
-    });
+    // Setup module-specific event listeners
+    this.todoManager.setupEventListeners();
+    this.taskListManager.setupEventListeners();
   }
 }
 
