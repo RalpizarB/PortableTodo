@@ -10,8 +10,18 @@
     <body>
         <div class="container">
             <header>
-                <h1> PortableTodo 2.0.1 </h1>
+                <h1>PortableTodo 2.0.1</h1>
                 <div class="header-controls">
+                    <button
+                        id="toggleStickiesBtn"
+                        class="btn-icon"
+                        title="Toggle Sticky Notes"
+                    >
+                        📌
+                    </button>
+                    <button id="settingsBtn" class="btn-icon" title="Settings">
+                        ⚙️
+                    </button>
                     <button
                         id="nightModeToggle"
                         class="btn-icon"
@@ -57,6 +67,64 @@
                     <div id="taskLists" class="task-lists-container"></div>
                 </aside>
             </div>
+
+            <!-- Sticky Notes Container -->
+            <div id="stickiesContainer" class="stickies-container"></div>
+
+            <!-- Add Sticky Note Button -->
+            <button
+                id="addStickyBtn"
+                class="add-sticky-btn"
+                title="Add Sticky Note"
+            >
+                ➕ Note
+            </button>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>⚙️ Settings</h2>
+                        <button id="closeModal" class="btn-close">
+                            &times;
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="settings-section">
+                            <h3>Default Task Color</h3>
+                            <div class="color-picker-container">
+                                <input
+                                    type="color"
+                                    id="defaultTaskColor"
+                                    value="#3498db"
+                                />
+                                <label for="defaultTaskColor"
+                                    >Color for new tasks</label
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="saveSettings" class="btn-primary">
+                            Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="disclaimer">
+                <p>
+                    <strong>Disclaimer:</strong> PortableTodo is a productivity
+                    tool provided "as is" for personal use and experimentation.
+                    This application stores data locally in your browser and is
+                    not intended for critical or mission-critical tasks. The
+                    developers assume no responsibility for any data loss,
+                    corruption, or damages resulting from the use of this
+                    application. Please maintain backups of important
+                    information and use appropriate tools for production
+                    environments.
+                </p>
+            </footer>
         </div>
 
         <script src="app.js"></script>
