@@ -35,10 +35,14 @@ body.night-mode {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+        Cantarell, sans-serif;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
     line-height: 1.6;
 }
 
@@ -187,6 +191,19 @@ header h1 {
 .todo-item.completed span {
     text-decoration: line-through;
     opacity: 0.6;
+}
+
+.todo-item {
+    cursor: move;
+    cursor: grab;
+}
+
+.todo-item:active {
+    cursor: grabbing;
+}
+
+.fc-event-dragging .todo-item {
+    opacity: 0.5;
 }
 
 .todo-item button {
@@ -389,6 +406,19 @@ header h1 {
 .task-item.completed span {
     text-decoration: line-through;
     opacity: 0.6;
+}
+
+.task-item {
+    cursor: move;
+    cursor: grab;
+}
+
+.task-item:active {
+    cursor: grabbing;
+}
+
+.fc-event-dragging .task-item {
+    opacity: 0.5;
 }
 
 .task-item button {
