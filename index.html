@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>PortableTodo - Task Planner</title>
+        <link rel="stylesheet" href="styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1> PortableTodo 2.0.1 </h1>
+                <div class="header-controls">
+                    <button
+                        id="nightModeToggle"
+                        class="btn-icon"
+                        title="Toggle Night Mode"
+                    >
+                        🌙
+                    </button>
+                </div>
+            </header>
+
+            <div class="main-content">
+                <!-- Left Panel: Todo List -->
+                <aside class="todo-panel">
+                    <h2>📝 Quick Todos</h2>
+                    <div class="todo-input-container">
+                        <input
+                            type="text"
+                            id="todoInput"
+                            placeholder="Add a quick todo..."
+                        />
+                        <button id="addTodoBtn" class="btn-primary">Add</button>
+                    </div>
+                    <ul id="todoList" class="todo-list"></ul>
+                </aside>
+
+                <!-- Center Panel: Calendar -->
+                <main class="calendar-panel">
+                    <div id="calendar"></div>
+                </main>
+
+                <!-- Right Panel: Task Lists -->
+                <aside class="tasklist-panel">
+                    <div class="tasklist-header">
+                        <h2>📋 Task Lists</h2>
+                        <button
+                            id="addListBtn"
+                            class="btn-icon"
+                            title="Add New List"
+                        >
+                            ➕
+                        </button>
+                    </div>
+                    <div id="taskLists" class="task-lists-container"></div>
+                </aside>
+            </div>
+        </div>
+
+        <script src="app.js"></script>
+    </body>
+</html>
