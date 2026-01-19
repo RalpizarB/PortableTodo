@@ -69,7 +69,20 @@ class PortableTodo {
         headerToolbar: {
           left: "prev,next today",
           center: "title",
-          right: "dayGridMonth,timeGridWeek,timeGridDay",
+          right:
+            "dayGridMonth,timeGridWeek,timeGridWorkWeek,timeGrid3Day,timeGridDay",
+        },
+        views: {
+          timeGrid3Day: {
+            type: "timeGrid",
+            duration: { days: 3 },
+            buttonText: "3 days",
+          },
+          timeGridWorkWeek: {
+            type: "timeGridWeek",
+            hiddenDays: [0, 6], // Hide Sunday and Saturday
+            buttonText: "Work Week",
+          },
         },
         editable: true,
         droppable: true,
