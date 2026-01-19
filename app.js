@@ -65,7 +65,7 @@ class PortableTodo {
 
       const calendarEl = document.getElementById("calendar");
       this.calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: "dayGridMonth",
+        initialView: "timeGridWeek",
         headerToolbar: {
           left: "prev,next today",
           center: "title",
@@ -84,6 +84,9 @@ class PortableTodo {
             buttonText: "Work Week",
           },
         },
+        slotDuration: "00:15:00", // 10-minute time slots
+        slotLabelInterval: "01:00:00", // Show labels every 30 minutes for readability
+        nowIndicator: true, // Show current time indicator line
         editable: true,
         droppable: true,
         events: this.calendarEvents,

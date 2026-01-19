@@ -270,6 +270,17 @@ header h1 {
     background-color: var(--bg-tertiary) !important;
 }
 
+/* Current time indicator styling */
+.fc .fc-timegrid-now-indicator-line {
+    border-color: #ea4335 !important;
+    border-width: 2px !important;
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+    border-color: #ea4335 !important;
+    border-width: 6px !important;
+}
+
 /* Task Lists Panel */
 .tasklist-panel {
     background-color: var(--bg-primary);
